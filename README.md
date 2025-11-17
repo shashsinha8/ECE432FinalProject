@@ -45,10 +45,17 @@ pytest tests/
 - Complete transmission simulation pipeline
 - All unit tests passing (24/24)
 
-### Phase 3: Baseline Performance Evaluation (Next)
-- BER calculation framework
-- Classical decoder performance evaluation
-- BER vs. Eb/N0 plots
+### Phase 3: Baseline Performance Evaluation ✓ COMPLETE
+- BER calculation framework implemented
+- Classical decoder performance evaluation across Eb/N0 range
+- BER vs. Eb/N0 plotting functionality
+- Complete evaluation pipeline with reproducibility
+- All unit tests passing (11/11)
+
+### Phase 4: ML Model Development (Next)
+- Neural network architecture design
+- Training data generation
+- Model training and validation
 
 ## Usage
 
@@ -59,6 +66,12 @@ python verify_phase1.py
 
 # Verify Phase 2: Channel simulation
 python verify_phase2.py
+
+# Verify Phase 3: Baseline evaluation
+python verify_phase3.py
+
+# Run full baseline evaluation (takes longer, better statistics)
+python run_baseline_evaluation.py
 ```
 
 ### Run Tests
