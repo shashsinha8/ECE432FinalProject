@@ -60,10 +60,17 @@ pytest tests/
 - MLDecoder wrapper class for inference
 - All unit tests passing (11/11)
 
-### Phase 5: ML-Assisted Decoding Integration (Next)
-- Integrate ML model with decoding pipeline
-- Evaluate ML-assisted decoder performance
-- Compare with classical baseline
+### Phase 5: ML-Assisted Decoding Integration ✓ COMPLETE
+- ML decoder integrated into evaluation pipeline
+- ML decoder performance evaluation framework
+- Comparison functionality for classical vs. ML
+- Comparison plotting and analysis
+- All unit tests passing (5/5)
+
+### Phase 6: Final Comparison & Documentation (Next)
+- Generate final comparison plots
+- Complete documentation
+- Ensure reproducibility
 
 ## Usage
 
@@ -86,6 +93,12 @@ python verify_phase4.py
 
 # Train ML decoder model
 python train_ml_decoder.py --approach direct --num_samples 100000 --epochs 50
+
+# Verify Phase 5: ML-assisted decoding integration
+python verify_phase5.py
+
+# Compare classical and ML decoders
+python compare_decoders.py --model_path models/ml_decoder_direct.pth --approach direct
 ```
 
 ### Run Tests
