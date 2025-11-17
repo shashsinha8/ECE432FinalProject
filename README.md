@@ -52,10 +52,18 @@ pytest tests/
 - Complete evaluation pipeline with reproducibility
 - All unit tests passing (11/11)
 
-### Phase 4: ML Model Development (Next)
-- Neural network architecture design
-- Training data generation
-- Model training and validation
+### Phase 4: ML Model Development ✓ COMPLETE
+- Neural network architectures implemented (DirectMapping and PostProcessing)
+- Training data generation pipeline
+- Model training framework with validation
+- Model saving/loading functionality
+- MLDecoder wrapper class for inference
+- All unit tests passing (11/11)
+
+### Phase 5: ML-Assisted Decoding Integration (Next)
+- Integrate ML model with decoding pipeline
+- Evaluate ML-assisted decoder performance
+- Compare with classical baseline
 
 ## Usage
 
@@ -72,6 +80,12 @@ python verify_phase3.py
 
 # Run full baseline evaluation (takes longer, better statistics)
 python run_baseline_evaluation.py
+
+# Verify Phase 4: ML model development
+python verify_phase4.py
+
+# Train ML decoder model
+python train_ml_decoder.py --approach direct --num_samples 100000 --epochs 50
 ```
 
 ### Run Tests
