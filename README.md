@@ -37,16 +37,28 @@ pytest tests/
 - Verified: All 16 possible 4-bit messages encode/decode correctly
 - Verified: All single-bit errors are detected and corrected
 
-### Phase 2: Channel Simulation (Next)
-- BPSK modulation
-- AWGN channel
-- Demodulation
+### Phase 2: Channel Simulation ✓ COMPLETE
+- BPSK modulation implemented (0 → +1, 1 → -1)
+- AWGN channel with correct noise statistics
+- Hard-decision and soft-decision (LLR) demodulation
+- Eb/N0 to noise variance conversion
+- Complete transmission simulation pipeline
+- All unit tests passing (24/24)
+
+### Phase 3: Baseline Performance Evaluation (Next)
+- BER calculation framework
+- Classical decoder performance evaluation
+- BER vs. Eb/N0 plots
 
 ## Usage
 
-### Verify Phase 1
+### Verify Phases
 ```bash
+# Verify Phase 1: Hamming encoder/decoder
 python verify_phase1.py
+
+# Verify Phase 2: Channel simulation
+python verify_phase2.py
 ```
 
 ### Run Tests
