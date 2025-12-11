@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """
-Training script for ML-assisted Hamming decoder.
+Training script for ML-assisted Hamming decoder with soft-decision inputs (LLRs).
 
-This script trains neural network models for either:
-1. Direct mapping: 7 received bits → 4 data bits
-2. Post-processing: 7 bits from classical decoder → 4 corrected data bits
+This script trains neural network models using Log-Likelihood Ratios (LLRs)
+instead of hard-decision bits, providing the model with reliability information.
 """
 
 import argparse
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -22,7 +28,9 @@ from src.ml_decoder import (
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Train ML-assisted Hamming decoder')
+    parser = argparse.ArgumentParser(
+        description='Train ML-assisted Hamming decoder with soft-decision inputs (LLRs)'
+    )
     parser.add_argument('--approach', type=str, choices=['direct', 'post'], 
                        default='direct', help='Approach: direct mapping or post-processing')
     parser.add_argument('--num_samples', type=int, default=100000,
@@ -44,13 +52,14 @@ def main():
     parser.add_argument('--device', type=str, default='cpu',
                        choices=['cpu', 'cuda'], help='Device to train on')
     parser.add_argument('--output', type=str, 
-                       default='models/ml_decoder_direct.pth',
+                       default='models/ml_decoder_direct_soft.pth',
                        help='Output model path')
     
     args = parser.parse_args()
     
     print("=" * 60)
-    print(f"Training ML Decoder: {args.approach} approach")
+    print(f"Training ML Decoder with Soft-Decision Inputs (LLRs)")
+    print(f"Approach: {args.approach}")
     print("=" * 60)
     print(f"Training samples: {args.num_samples:,}")
     print(f"Eb/N0 range: {args.ebno_min} to {args.ebno_max} dB")
@@ -67,26 +76,29 @@ def main():
     if torch.cuda.is_available() and args.device == 'cuda':
         torch.cuda.manual_seed(args.seed)
     
-    # Generate training data
-    print("Generating training data...")
+    # Generate training data with soft inputs
+    print("Generating training data with soft-decision inputs (LLRs)...")
     train_inputs, train_targets = generate_training_data(
         num_samples=int(args.num_samples * 0.8),
         ebno_range=(args.ebno_min, args.ebno_max),
         approach=args.approach,
-        seed=args.seed
+        seed=args.seed,
+        use_soft_input=True  # Use soft-decision inputs
     )
     
-    # Generate validation data
-    print("Generating validation data...")
+    # Generate validation data with soft inputs
+    print("Generating validation data with soft-decision inputs (LLRs)...")
     val_inputs, val_targets = generate_training_data(
         num_samples=int(args.num_samples * 0.2),
         ebno_range=(args.ebno_min, args.ebno_max),
         approach=args.approach,
-        seed=args.seed + 1000
+        seed=args.seed + 1000,
+        use_soft_input=True  # Use soft-decision inputs
     )
     
     print(f"Training samples: {len(train_inputs):,}")
     print(f"Validation samples: {len(val_inputs):,}")
+    print(f"Input range: [{train_inputs.min():.2f}, {train_inputs.max():.2f}] (LLRs)")
     print()
     
     # Create datasets and data loaders
@@ -96,19 +108,24 @@ def main():
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
     
-    # Create model
+    # Create model with soft input support
     if args.approach == 'direct':
         model = DirectMappingDecoder(
             input_size=7,
             hidden_sizes=args.hidden_sizes,
-            output_size=4
+            output_size=4,
+            use_soft_input=True  # Enable soft input mode
         )
     else:
+        # Post-processing doesn't typically use soft inputs
+        # (it processes already-decoded hard bits)
         model = PostProcessingDecoder(
             input_size=7,
             hidden_sizes=args.hidden_sizes,
             output_size=4
         )
+        print("Warning: Post-processing approach typically uses hard inputs.")
+        print("Soft inputs may not be applicable for post-processing.")
     
     print(f"Model architecture:")
     print(model)
@@ -140,7 +157,8 @@ def main():
     np.save(history_path, {
         'train_losses': train_losses,
         'val_losses': val_losses,
-        'val_accuracies': val_accuracies
+        'val_accuracies': val_accuracies,
+        'use_soft_input': True
     })
     print(f"Training history saved to {history_path}")
 

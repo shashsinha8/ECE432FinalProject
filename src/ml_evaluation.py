@@ -11,8 +11,10 @@ from src.ml_decoder import MLDecoder, load_model, DirectMappingDecoder, PostProc
 from src.channel import (
     bpsk_modulate,
     bpsk_demodulate_hard,
+    bpsk_demodulate_soft,
     awgn_channel,
-    generate_ebno_range
+    generate_ebno_range,
+    ebno_to_noise_variance
 )
 from src.evaluation import calculate_ber, plot_ber_curve
 import torch
@@ -78,23 +80,38 @@ def simulate_ml_decoder(num_bits, eb_no_db, ml_decoder, approach='direct',
     # Add AWGN
     rx_symbols = awgn_channel(tx_symbols, eb_no_db, rate, seed=seed)
     
-    # Demodulate (hard decision)
-    rx_bits = bpsk_demodulate_hard(rx_symbols)
-    
-    # Reshape for decoding
-    rx_codewords = rx_bits.reshape(num_codewords, 7)
+    # Check if ML decoder uses soft inputs
+    if ml_decoder.use_soft_input:
+        # Use soft-decision (LLRs)
+        # Calculate noise variance for proper LLR calculation
+        noise_variance, _ = ebno_to_noise_variance(eb_no_db, rate)
+        # LLR = 2 * symbol / sigma^2
+        llrs = 2 * rx_symbols / noise_variance
+        # Normalize LLRs to reasonable range (clip to [-10, 10])
+        llrs = np.clip(llrs, -10.0, 10.0)
+        
+        # Reshape for decoding
+        rx_codewords = llrs.reshape(num_codewords, 7)
+    else:
+        # Use hard-decision bits
+        rx_bits = bpsk_demodulate_hard(rx_symbols)
+        # Reshape for decoding
+        rx_codewords = rx_bits.reshape(num_codewords, 7)
     
     # Decode using ML decoder
     if approach == 'direct':
-        # Direct mapping: ML decoder takes received bits directly
+        # Direct mapping: ML decoder takes received bits/LLRs directly
         decoded_data = ml_decoder.decode_batch(rx_codewords)
     elif approach == 'post':
         # Post-processing: First use classical decoder, then ML
         classical_decoder = ClassicalDecoder()
-        classical_output, _, _ = classical_decoder.decode_batch(rx_codewords)
-        # ML decoder takes the corrected codeword (need to reconstruct)
-        # Actually, for post-processing, we need the corrected codeword
-        _, corrected_codewords, _ = classical_decoder.decode_batch(rx_codewords)
+        # For post-processing, we still need hard bits for classical decoder
+        if ml_decoder.use_soft_input:
+            rx_bits = bpsk_demodulate_hard(rx_symbols)
+            rx_codewords_hard = rx_bits.reshape(num_codewords, 7)
+        else:
+            rx_codewords_hard = rx_codewords
+        _, corrected_codewords, _ = classical_decoder.decode_batch(rx_codewords_hard)
         decoded_data = ml_decoder.decode_batch(corrected_codewords)
     else:
         raise ValueError(f"Unknown approach: {approach}")
@@ -200,7 +217,7 @@ def compare_decoders(ebno_range, classical_ber, ml_ber, ml_label="ML Decoder",
 
 def run_ml_evaluation(model_path, approach='direct', ebno_start=-5, ebno_end=10,
                      num_points=16, num_bits_per_point=100000, seed=42,
-                     device='cpu', save_plot=True):
+                     device='cpu', save_plot=True, use_soft_input=False):
     """
     Run complete ML decoder evaluation.
     
@@ -224,6 +241,8 @@ def run_ml_evaluation(model_path, approach='direct', ebno_start=-5, ebno_end=10,
         Device for inference
     save_plot : bool
         Whether to save plot
+    use_soft_input : bool
+        Whether model uses soft-decision inputs (LLRs)
     
     Returns:
     --------
@@ -238,18 +257,23 @@ def run_ml_evaluation(model_path, approach='direct', ebno_start=-5, ebno_end=10,
     """
     print("=" * 60)
     print(f"ML-Assisted Decoder Evaluation ({approach} approach)")
+    if use_soft_input:
+        print("Using soft-decision inputs (LLRs)")
+    else:
+        print("Using hard-decision inputs")
     print("=" * 60)
     print()
     
     # Load model
     print(f"Loading model from {model_path}...")
     if approach == 'direct':
-        model = DirectMappingDecoder(input_size=7, hidden_sizes=[64, 32], output_size=4)
+        model = DirectMappingDecoder(input_size=7, hidden_sizes=[64, 32], 
+                                     output_size=4, use_soft_input=use_soft_input)
     else:
         model = PostProcessingDecoder(input_size=7, hidden_sizes=[32, 16], output_size=4)
     
     model = load_model(model, model_path, device=device)
-    ml_decoder = MLDecoder(model, device=device)
+    ml_decoder = MLDecoder(model, device=device, use_soft_input=use_soft_input)
     print()
     
     # Generate Eb/N0 range

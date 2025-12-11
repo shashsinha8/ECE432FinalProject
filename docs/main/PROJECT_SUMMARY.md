@@ -2,7 +2,7 @@
 
 ## Project Completion Status: ✓ COMPLETE
 
-All 6 phases have been successfully implemented and tested.
+All 6 initial phases and 5 improvement phases have been successfully implemented and tested.
 
 ## Phase Summary
 
@@ -146,16 +146,114 @@ ECE432FinalProject/
 └── README.md              # Complete documentation
 ```
 
-## Next Steps (For Users)
+## Improvement Phases Summary
 
-1. Train ML models with desired hyperparameters
-2. Evaluate performance across different Eb/N0 ranges
-3. Compare classical vs. ML decoder performance
-4. Analyze results and generate plots
-5. Experiment with different ML architectures
+### Phase 1 (Improvement): Analysis & Visualization ✓
+- Comprehensive analysis script (`analyze_results.py`)
+- Performance metrics calculation
+- Annotated comparison plots
+- Identified key issues and root causes
+
+### Phase 2 (Improvement): Soft-Decision ML Decoder ✓
+- Soft-decision inputs using Log-Likelihood Ratios (LLRs)
+- Major performance breakthrough: 43.3% average improvement over classical
+- Training script: `train_ml_decoder_soft.py`
+
+### Phase 3 (Improvement): Improved Training Strategy ✓
+- Weighted training data sampling (70% focus on error-prone 0-5 dB region)
+- Codeword-level loss function
+- Data augmentation pipeline
+- Training script: `train_ml_decoder_phase3.py`
+
+### Phase 4 (Improvement): Architecture Improvements ✓
+- Deep architecture (7 → 128 → 64 → 32 → 16 → 4)
+- Wide architecture (7 → 256 → 128 → 4)
+- Residual architecture (with skip connections)
+- Training script: `train_ml_decoder_phase4.py`
+
+### Phase 5 (Improvement): Final Evaluation & Documentation ✓
+- Comprehensive evaluation of all model variants
+- Final comparison plots
+- Performance summary report
+- Complete documentation
+- Evaluation script: `final_evaluation_phase5.py`
+
+## Key Results
+
+- **Soft-Decision ML**: 43.3% average improvement over classical decoder
+- **Phase 3**: Additional improvements with better training strategy
+- **Phase 4**: Architecture variants provide different performance characteristics
+- **All Phases**: Successfully outperform classical decoder baseline
+
+## Usage Quick Start (Updated)
+
+1. **Setup**:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+2. **Verify**:
+   ```bash
+   pytest tests/  # All 66 tests should pass
+   ```
+
+3. **Run Baseline**:
+   ```bash
+   python run_baseline_evaluation.py
+   ```
+
+4. **Train ML Models**:
+   ```bash
+   # Soft-decision (Phase 2)
+   python train_ml_decoder_soft.py --num_samples 100000 --epochs 50
+   
+   # Phase 3 improved training
+   python train_ml_decoder_phase3.py --use_codeword_loss --augment_ratio 0.1
+   
+   # Phase 4 architectures
+   python train_ml_decoder_phase4.py --architecture deep
+   ```
+
+5. **Final Evaluation**:
+   ```bash
+   python final_evaluation_phase5.py
+   ```
+
+## Project Structure (Updated)
+
+```
+ECE432FinalProject/
+├── src/                          # Source code (6 modules + Phase 4 architectures)
+├── tests/                        # Test suite (66 tests)
+├── data/                         # Results and plots
+│   ├── phase5_final_comparison.png
+│   ├── phase5_final_report.md
+│   └── phase5_final_results.npy
+├── models/                       # Saved ML models
+│   ├── ml_decoder_direct.pth
+│   ├── ml_decoder_direct_soft.pth
+│   ├── ml_decoder_phase3.pth
+│   ├── ml_decoder_phase4_deep.pth
+│   ├── ml_decoder_phase4_wide.pth
+│   └── ml_decoder_phase4_residual.pth
+├── docs/                         # Documentation
+│   ├── CODEBASE_DOCUMENTATION.md
+│   ├── SOFT_DECISION_ANALYSIS.md
+│   ├── PHASE3_IMPROVEMENTS.md
+│   ├── PHASE4_ARCHITECTURES.md
+│   └── PHASE5_FINAL_EVALUATION.md
+├── train_ml_decoder.py            # Hard-decision training
+├── train_ml_decoder_soft.py      # Soft-decision training (Phase 2)
+├── train_ml_decoder_phase3.py   # Phase 3 training
+├── train_ml_decoder_phase4.py    # Phase 4 training
+├── final_evaluation_phase5.py    # Phase 5 evaluation
+└── README.md                     # Complete documentation
+```
 
 ## Authors
 
 Shashwat Sinha, Ambarish Pathak  
-ECE 432 - November 2025
+ECE 432 - December 2025
 

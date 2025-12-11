@@ -6,6 +6,13 @@ This script evaluates the classical Hamming(7,4) decoder performance
 across a range of Eb/N0 values and generates BER vs. Eb/N0 plots.
 """
 
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 import numpy as np
 from src.evaluation import run_baseline_evaluation
 

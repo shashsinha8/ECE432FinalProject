@@ -1,0 +1,178 @@
+================================================================================
+PROJECT ORGANIZATION SUMMARY
+================================================================================
+
+This document summarizes the file organization and cleanup performed on the
+ECE 432 Final Project.
+
+Date: December 2025
+
+================================================================================
+FILES MOVED TO ARCHIVE
+================================================================================
+
+1. OLD SCRIPTS (archive/old_files/):
+   - train_ml_decoder.py - Hard-decision training (replaced by soft-decision)
+   - example_usage.py - Example script (not essential)
+   - verify_phase1.py through verify_phase6.py - Verification scripts (not needed for final)
+
+2. OLD MODELS (archive/old_models/):
+   - ml_decoder_direct.pth - Hard-decision model (not used)
+   - ml_decoder_direct_history.npy - Training history for hard-decision
+
+3. OLD DATA FILES (archive/old_data/):
+   - comparison_analysis.png - Old analysis plot
+   - final_comparison_direct.png - Old comparison plot
+   - ml_decoder_direct_ber_curve.png - Old individual plot
+   - ml_decoder_direct_results.npy - Old hard-decision results
+   - phase3_verification_plot.png - Old verification plot
+   - phase5_verification_comparison.png - Old verification plot
+   - phase6_verification_plot.png - Old verification plot
+
+4. REMOVED:
+   - Empty directories: notebooks/, docs/scripts/
+
+================================================================================
+ESSENTIAL FILES RETAINED
+================================================================================
+
+CORE CODE:
+- src/ - All source code modules (6 files)
+- tests/ - All unit tests (5 test files)
+
+TRAINING SCRIPTS:
+- train_ml_decoder_soft.py - Soft-decision training (recommended)
+- train_ml_decoder_phase3.py - Improved training
+- train_ml_decoder_phase4.py - Architecture variants
+
+EVALUATION SCRIPTS:
+- run_baseline_evaluation.py - Classical decoder baseline
+- compare_decoders.py - Two-model comparison
+- final_evaluation_phase5.py - Comprehensive evaluation
+
+DOCUMENTATION:
+- README.md - Main documentation
+- PROJECT_EXPLANATION.txt - Complete project explanation
+- PROJECT_SUMMARY.md - Project summary
+- VERIFICATION_REPORT.txt - Results verification
+- PROJECT_STRUCTURE.md - This organization guide
+- docs/CODEBASE_DOCUMENTATION.md - Technical documentation
+- docs/SOFT_DECISION_ANALYSIS.md - Soft-decision analysis
+- docs/PHASE3_IMPROVEMENTS.md - Training improvements
+- docs/PHASE4_ARCHITECTURES.md - Architecture details
+- docs/PHASE5_FINAL_EVALUATION.md - Final evaluation
+
+RESULTS:
+- data/phase5_final_comparison.png - Final comparison plot
+- data/phase5_final_report.md - Performance report
+- data/phase5_final_results.npy - Raw results
+- data/baseline_ber_curve.png - Baseline plot
+- data/comparison_all_decoders.png - All decoders comparison
+- data/training_comparison_soft_vs_hard.png - Training comparison
+
+MODELS:
+- models/ml_decoder_direct_soft.pth - Soft-decision model (recommended)
+- models/ml_decoder_phase3.pth - Improved training model
+- models/ml_decoder_phase4_deep.pth - Deep architecture
+- models/ml_decoder_phase4_wide.pth - Wide architecture
+- models/ml_decoder_phase4_residual.pth - Residual architecture (best)
+
+CONFIGURATION:
+- requirements.txt - Dependencies
+- .gitignore - Git ignore rules
+
+================================================================================
+CURRENT PROJECT STRUCTURE
+================================================================================
+
+ECE432FinalProject/
+├── src/                          # Core source code (ESSENTIAL)
+│   ├── hamming.py
+│   ├── classical_decoder.py
+│   ├── channel.py
+│   ├── evaluation.py
+│   ├── ml_decoder.py
+│   └── ml_evaluation.py
+│
+├── tests/                        # Unit tests (ESSENTIAL)
+│   ├── test_hamming.py
+│   ├── test_channel.py
+│   ├── test_evaluation.py
+│   ├── test_ml_decoder.py
+│   └── test_ml_evaluation.py
+│
+├── models/                       # Trained ML models
+│   ├── ml_decoder_direct_soft.pth
+│   ├── ml_decoder_phase3.pth
+│   ├── ml_decoder_phase4_deep.pth
+│   ├── ml_decoder_phase4_wide.pth
+│   └── ml_decoder_phase4_residual.pth
+│
+├── data/                         # Results and plots
+│   ├── phase5_final_comparison.png
+│   ├── phase5_final_report.md
+│   ├── phase5_final_results.npy
+│   └── [other essential plots]
+│
+├── docs/                         # Documentation
+│   ├── CODEBASE_DOCUMENTATION.md
+│   ├── SOFT_DECISION_ANALYSIS.md
+│   └── [other documentation]
+│
+├── archive/                      # Archived old files
+│   ├── old_files/               # Old scripts
+│   ├── old_models/              # Old models
+│   └── old_data/                # Old data files
+│
+├── train_ml_decoder_soft.py     # Main training script
+├── train_ml_decoder_phase3.py   # Improved training
+├── train_ml_decoder_phase4.py   # Architecture variants
+├── run_baseline_evaluation.py   # Baseline evaluation
+├── compare_decoders.py           # Two-model comparison
+├── final_evaluation_phase5.py   # Comprehensive evaluation
+├── README.md                     # Main documentation
+├── PROJECT_EXPLANATION.txt      # Project explanation
+├── PROJECT_SUMMARY.md           # Project summary
+├── VERIFICATION_REPORT.txt      # Verification report
+├── PROJECT_STRUCTURE.md         # Structure guide
+├── requirements.txt              # Dependencies
+└── .gitignore                   # Git ignore rules
+
+================================================================================
+FILE COUNT SUMMARY
+================================================================================
+
+Before Organization:
+- Python scripts in root: ~14 files
+- PNG files in data: ~10 files
+- Model files: 6 files
+
+After Organization:
+- Python scripts in root: 6 essential scripts
+- PNG files in data: 4 essential plots
+- Model files: 5 trained models
+- Archived: 10 old files, 2 old models, 7 old data files
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+1. For Submission:
+   - Keep all files in root directory (essential scripts)
+   - Keep src/, tests/, models/, data/, docs/
+   - Archive folder can be excluded if needed
+
+2. For Development:
+   - All essential files are accessible
+   - Archived files can be restored if needed
+   - Clean structure makes navigation easier
+
+3. For Git:
+   - Use .gitignore to exclude venv/, __pycache__/, large data files
+   - Archive folder can be excluded
+   - Models can be excluded (large files)
+
+================================================================================
+END OF ORGANIZATION SUMMARY
+================================================================================
+

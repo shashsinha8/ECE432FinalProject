@@ -162,8 +162,168 @@ class PostProcessingDecoder(nn.Module):
         return self.network(x)
 
 
+class DeepDirectMappingDecoder(nn.Module):
+    """
+    Deeper version of DirectMappingDecoder with more layers.
+    
+    Architecture: 7 → 128 → 64 → 32 → 16 → 4 (deeper than standard)
+    Provides more capacity for learning complex error patterns.
+    """
+    
+    def __init__(self, input_size=7, output_size=4, use_soft_input=False):
+        """
+        Initialize deep direct mapping decoder.
+        
+        Parameters:
+        -----------
+        input_size : int
+            Size of input (7 for Hamming codeword)
+        output_size : int
+            Size of output (4 for data bits)
+        use_soft_input : bool
+            If True, expects soft values (LLRs). If False, expects hard bits.
+        """
+        super(DeepDirectMappingDecoder, self).__init__()
+        
+        self.use_soft_input = use_soft_input
+        
+        # Deeper architecture: 7 → 128 → 64 → 32 → 16 → 4
+        self.layer1 = nn.Linear(input_size, 128)
+        self.layer2 = nn.Linear(128, 64)
+        self.layer3 = nn.Linear(64, 32)
+        self.layer4 = nn.Linear(32, 16)
+        self.output = nn.Linear(16, output_size)
+        
+        self.dropout = nn.Dropout(0.2)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+    
+    def forward(self, x):
+        """Forward pass through deep network."""
+        x = self.relu(self.layer1(x))
+        x = self.dropout(x)
+        x = self.relu(self.layer2(x))
+        x = self.dropout(x)
+        x = self.relu(self.layer3(x))
+        x = self.dropout(x)
+        x = self.relu(self.layer4(x))
+        x = self.dropout(x)
+        x = self.sigmoid(self.output(x))
+        return x
+
+
+class WideDirectMappingDecoder(nn.Module):
+    """
+    Wider version of DirectMappingDecoder with more neurons per layer.
+    
+    Architecture: 7 → 256 → 128 → 4 (wider than standard)
+    Provides more capacity in each layer for learning complex patterns.
+    """
+    
+    def __init__(self, input_size=7, output_size=4, use_soft_input=False):
+        """
+        Initialize wide direct mapping decoder.
+        
+        Parameters:
+        -----------
+        input_size : int
+            Size of input (7 for Hamming codeword)
+        output_size : int
+            Size of output (4 for data bits)
+        use_soft_input : bool
+            If True, expects soft values (LLRs). If False, expects hard bits.
+        """
+        super(WideDirectMappingDecoder, self).__init__()
+        
+        self.use_soft_input = use_soft_input
+        
+        # Wider architecture: 7 → 256 → 128 → 4
+        self.layer1 = nn.Linear(input_size, 256)
+        self.layer2 = nn.Linear(256, 128)
+        self.output = nn.Linear(128, output_size)
+        
+        self.dropout = nn.Dropout(0.2)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+    
+    def forward(self, x):
+        """Forward pass through wide network."""
+        x = self.relu(self.layer1(x))
+        x = self.dropout(x)
+        x = self.relu(self.layer2(x))
+        x = self.dropout(x)
+        x = self.sigmoid(self.output(x))
+        return x
+
+
+class ResidualDirectMappingDecoder(nn.Module):
+    """
+    DirectMappingDecoder with residual (skip) connections.
+    
+    Architecture: 7 → 128 → 64 → 32 → 4 with residual connections
+    Residual connections help with gradient flow and learning identity mappings.
+    """
+    
+    def __init__(self, input_size=7, output_size=4, use_soft_input=False):
+        """
+        Initialize residual direct mapping decoder.
+        
+        Parameters:
+        -----------
+        input_size : int
+            Size of input (7 for Hamming codeword)
+        output_size : int
+            Size of output (4 for data bits)
+        use_soft_input : bool
+            If True, expects soft values (LLRs). If False, expects hard bits.
+        """
+        super(ResidualDirectMappingDecoder, self).__init__()
+        
+        self.use_soft_input = use_soft_input
+        
+        # Main path: 7 → 128 → 64 → 32 → 4
+        self.layer1 = nn.Linear(input_size, 128)
+        self.layer2 = nn.Linear(128, 64)
+        self.layer3 = nn.Linear(64, 32)
+        self.output = nn.Linear(32, output_size)
+        
+        # Residual connections (projection layers when dimensions don't match)
+        self.residual1 = nn.Linear(input_size, 128)  # 7 → 128
+        self.residual2 = nn.Linear(128, 64)  # 128 → 64
+        self.residual3 = nn.Linear(64, 32)  # 64 → 32
+        
+        self.dropout = nn.Dropout(0.2)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+    
+    def forward(self, x):
+        """Forward pass with residual connections."""
+        # First residual block
+        identity = self.residual1(x)
+        out = self.relu(self.layer1(x))
+        out = out + identity  # Residual connection
+        out = self.dropout(out)
+        
+        # Second residual block
+        identity = self.residual2(out)
+        out = self.relu(self.layer2(out))
+        out = out + identity  # Residual connection
+        out = self.dropout(out)
+        
+        # Third residual block
+        identity = self.residual3(out)
+        out = self.relu(self.layer3(out))
+        out = out + identity  # Residual connection
+        out = self.dropout(out)
+        
+        # Output layer
+        out = self.sigmoid(self.output(out))
+        return out
+
+
 def generate_training_data(num_samples, ebno_range, approach='direct', 
-                          rate=4/7, seed=None):
+                          rate=4/7, seed=None, use_soft_input=False,
+                          weighted_sampling=False, focus_ebno_range=None):
     """
     Generate training data for ML decoder.
     
@@ -179,11 +339,20 @@ def generate_training_data(num_samples, ebno_range, approach='direct',
         Code rate. Default is 4/7 for Hamming(7,4)
     seed : int, optional
         Random seed
+    use_soft_input : bool
+        If True, use soft-decision inputs (LLRs). If False, use hard-decision bits.
+    weighted_sampling : bool
+        If True, use weighted sampling focusing on error-prone regions
+    focus_ebno_range : tuple, optional
+        (min, max) Eb/N0 range to focus on for weighted sampling.
+        Default: (0.0, 5.0) - the error-prone region
     
     Returns:
     --------
     inputs : numpy.ndarray
         Input features (shape: num_samples x 7)
+        If use_soft_input=True: LLR values (continuous)
+        If use_soft_input=False: Hard bits (0 or 1)
     targets : numpy.ndarray
         Target labels (shape: num_samples x 4)
     """
@@ -193,7 +362,13 @@ def generate_training_data(num_samples, ebno_range, approach='direct',
     
     from src.hamming import encode
     from src.classical_decoder import ClassicalDecoder
-    from src.channel import bpsk_modulate, bpsk_demodulate_hard, awgn_channel
+    from src.channel import (
+        bpsk_modulate, 
+        bpsk_demodulate_hard, 
+        bpsk_demodulate_soft,
+        awgn_channel,
+        ebno_to_noise_variance
+    )
     
     inputs = []
     targets = []
@@ -205,6 +380,16 @@ def generate_training_data(num_samples, ebno_range, approach='direct',
     
     ebno_min, ebno_max = ebno_range
     
+    # Set up weighted sampling if requested
+    if weighted_sampling:
+        if focus_ebno_range is None:
+            focus_ebno_range = (0.0, 5.0)  # Default: focus on error-prone region
+        focus_min, focus_max = focus_ebno_range
+        # Use 70% samples from focus region, 30% from full range
+        focus_weight = 0.7
+    else:
+        focus_weight = 0.0
+    
     for i in range(num_codewords // 4):
         # Generate random data bits
         data_bits = np.random.randint(0, 2, size=4, dtype=np.uint8)
@@ -212,8 +397,13 @@ def generate_training_data(num_samples, ebno_range, approach='direct',
         # Encode
         codeword = encode(data_bits)
         
-        # Random Eb/N0 for this sample
-        eb_no_db = np.random.uniform(ebno_min, ebno_max)
+        # Sample Eb/N0 with weighted distribution if requested
+        if weighted_sampling and np.random.random() < focus_weight:
+            # Sample from focus region (error-prone)
+            eb_no_db = np.random.uniform(focus_min, focus_max)
+        else:
+            # Sample from full range
+            eb_no_db = np.random.uniform(ebno_min, ebno_max)
         
         # Modulate
         symbols = bpsk_modulate(codeword)
@@ -221,26 +411,167 @@ def generate_training_data(num_samples, ebno_range, approach='direct',
         # Add AWGN
         noisy_symbols = awgn_channel(symbols, eb_no_db, rate, seed=seed + i if seed else None)
         
-        # Demodulate
-        rx_bits = bpsk_demodulate_hard(noisy_symbols)
-        
-        if approach == 'direct':
-            # Direct mapping: input = received bits, output = original data bits
-            inputs.append(rx_bits.astype(np.float32))
-            targets.append(data_bits.astype(np.float32))
-        elif approach == 'post':
-            # Post-processing: input = corrected codeword from classical decoder, output = original data bits
-            _, corrected_word, _ = decoder.decode(rx_bits)
-            inputs.append(corrected_word.astype(np.float32))
-            targets.append(data_bits.astype(np.float32))
+        if use_soft_input:
+            # Use soft-decision (LLRs)
+            # Calculate noise variance for proper LLR calculation
+            noise_variance, _ = ebno_to_noise_variance(eb_no_db, rate)
+            # LLR = 2 * symbol / sigma^2
+            llrs = 2 * noisy_symbols / noise_variance
+            
+            # Normalize LLRs to reasonable range (clip to [-10, 10])
+            llrs = np.clip(llrs, -10.0, 10.0)
+            
+            if approach == 'direct':
+                # Direct mapping: input = LLRs, output = original data bits
+                inputs.append(llrs.astype(np.float32))
+                targets.append(data_bits.astype(np.float32))
+            elif approach == 'post':
+                # Post-processing: first decode with classical, then use LLRs
+                rx_bits = bpsk_demodulate_hard(noisy_symbols)
+                _, corrected_word, _ = decoder.decode(rx_bits)
+                # For post-processing with soft, we could use LLRs of corrected word
+                # But classical decoder gives hard bits, so we'll use those
+                inputs.append(corrected_word.astype(np.float32))
+                targets.append(data_bits.astype(np.float32))
+            else:
+                raise ValueError(f"Unknown approach: {approach}")
         else:
-            raise ValueError(f"Unknown approach: {approach}")
+            # Use hard-decision bits
+            rx_bits = bpsk_demodulate_hard(noisy_symbols)
+            
+            if approach == 'direct':
+                # Direct mapping: input = received bits, output = original data bits
+                inputs.append(rx_bits.astype(np.float32))
+                targets.append(data_bits.astype(np.float32))
+            elif approach == 'post':
+                # Post-processing: input = corrected codeword from classical decoder, output = original data bits
+                _, corrected_word, _ = decoder.decode(rx_bits)
+                inputs.append(corrected_word.astype(np.float32))
+                targets.append(data_bits.astype(np.float32))
+            else:
+                raise ValueError(f"Unknown approach: {approach}")
     
     return np.array(inputs), np.array(targets)
 
 
+class CodewordLoss(nn.Module):
+    """
+    Codeword-level loss function that considers Hamming code structure.
+    
+    Combines bit-level BCE loss with codeword-level penalty.
+    Penalizes incorrect codewords more than individual bit errors.
+    """
+    
+    def __init__(self, bit_weight=0.5, codeword_weight=0.5):
+        """
+        Initialize codeword loss.
+        
+        Parameters:
+        -----------
+        bit_weight : float
+            Weight for bit-level BCE loss (default: 0.5)
+        codeword_weight : float
+            Weight for codeword-level penalty (default: 0.5)
+        """
+        super(CodewordLoss, self).__init__()
+        self.bit_weight = bit_weight
+        self.codeword_weight = codeword_weight
+        self.bce_loss = nn.BCELoss(reduction='none')
+    
+    def forward(self, outputs, targets):
+        """
+        Calculate codeword-level loss.
+        
+        Parameters:
+        -----------
+        outputs : torch.Tensor
+            Model outputs (batch_size, 4) - probabilities
+        targets : torch.Tensor
+            Target labels (batch_size, 4) - binary values
+        
+        Returns:
+        --------
+        loss : torch.Tensor
+            Scalar loss value
+        """
+        # Bit-level BCE loss
+        bit_losses = self.bce_loss(outputs, targets)  # (batch_size, 4)
+        bit_loss = bit_losses.mean()  # Average over all bits
+        
+        # Codeword-level penalty: extra penalty if entire codeword is wrong
+        # Convert probabilities to binary predictions
+        predicted = (outputs > 0.5).float()
+        # Check if entire codeword matches
+        codeword_correct = (predicted == targets).all(dim=1).float()  # (batch_size,)
+        # Penalty: higher loss for incorrect codewords
+        codeword_penalty = (1.0 - codeword_correct).mean()
+        
+        # Combined loss
+        total_loss = self.bit_weight * bit_loss + self.codeword_weight * codeword_penalty
+        
+        return total_loss
+
+
+def augment_training_data(inputs, targets, noise_level=0.1, augmentation_ratio=0.1, seed=None):
+    """
+    Augment training data by adding controlled noise.
+    
+    Parameters:
+    -----------
+    inputs : numpy.ndarray
+        Input features (N, 7)
+    targets : numpy.ndarray
+        Target labels (N, 4)
+    noise_level : float
+        Standard deviation of noise to add (default: 0.1)
+    augmentation_ratio : float
+        Fraction of data to augment (default: 0.1 = 10%)
+    seed : int, optional
+        Random seed
+    
+    Returns:
+    --------
+    augmented_inputs : numpy.ndarray
+        Augmented inputs (original + augmented)
+    augmented_targets : numpy.ndarray
+        Augmented targets (original + augmented)
+    """
+    if seed is not None:
+        np.random.seed(seed)
+    
+    num_augment = int(len(inputs) * augmentation_ratio)
+    if num_augment == 0:
+        return inputs, targets
+    
+    # Select random samples to augment
+    indices = np.random.choice(len(inputs), num_augment, replace=False)
+    
+    augmented_inputs = []
+    augmented_targets = []
+    
+    for idx in indices:
+        # Add small noise to inputs
+        noise = np.random.normal(0, noise_level, size=inputs[idx].shape)
+        augmented_input = inputs[idx] + noise
+        
+        # Clip to valid range (for LLRs: [-10, 10], for bits: [0, 1])
+        if inputs[idx].min() < 0:  # LLRs
+            augmented_input = np.clip(augmented_input, -10.0, 10.0)
+        else:  # Hard bits
+            augmented_input = np.clip(augmented_input, 0.0, 1.0)
+        
+        augmented_inputs.append(augmented_input)
+        augmented_targets.append(targets[idx])
+    
+    # Combine original and augmented
+    all_inputs = np.vstack([inputs, np.array(augmented_inputs)])
+    all_targets = np.vstack([targets, np.array(augmented_targets)])
+    
+    return all_inputs, all_targets
+
+
 def train_model(model, train_loader, val_loader, num_epochs=50, 
-                learning_rate=0.001, device='cpu', verbose=True):
+                learning_rate=0.001, device='cpu', verbose=True, use_codeword_loss=False):
     """
     Train the ML decoder model.
     
@@ -260,6 +591,8 @@ def train_model(model, train_loader, val_loader, num_epochs=50,
         Device to train on ('cpu' or 'cuda')
     verbose : bool
         Whether to print training progress
+    use_codeword_loss : bool
+        If True, use codeword-level loss instead of bit-level BCE
     
     Returns:
     --------
@@ -271,7 +604,10 @@ def train_model(model, train_loader, val_loader, num_epochs=50,
         Validation accuracies per epoch
     """
     model = model.to(device)
-    criterion = nn.BCELoss()  # Binary cross-entropy for binary classification
+    if use_codeword_loss:
+        criterion = CodewordLoss(bit_weight=0.5, codeword_weight=0.5)
+    else:
+        criterion = nn.BCELoss()  # Binary cross-entropy for binary classification
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     
     train_losses = []
@@ -372,9 +708,10 @@ class MLDecoder:
     Wrapper class for ML-assisted decoder.
     
     Can use either direct mapping or post-processing approach.
+    Supports both hard-decision and soft-decision (LLR) inputs.
     """
     
-    def __init__(self, model, device='cpu'):
+    def __init__(self, model, device='cpu', use_soft_input=False):
         """
         Initialize ML decoder.
         
@@ -384,10 +721,13 @@ class MLDecoder:
             Trained neural network model
         device : str
             Device to run inference on
+        use_soft_input : bool
+            If True, expects soft inputs (LLRs). If False, expects hard bits.
         """
         self.model = model.to(device)
         self.model.eval()
         self.device = device
+        self.use_soft_input = use_soft_input
     
     def decode(self, received_bits):
         """

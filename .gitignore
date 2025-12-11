@@ -33,29 +33,24 @@ ENV/
 *.swo
 *~
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# Jupyter Notebooks
+.ipynb_checkpoints/
 *.ipynb
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-
-# Models and Data
-models/*.pth
-models/*.pkl
+# Data files (large)
 data/*.png
 data/*.npy
-data/*.txt
-!data/.gitkeep
-!models/.gitkeep
+!data/phase5_final_comparison.png
+!data/phase5_final_report.md
+!data/phase5_final_results.npy
+
+# Models (large)
+models/*.pth
+models/*_history.npy
+
+# Archive
+archive/
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Project specific
-*.log
-
